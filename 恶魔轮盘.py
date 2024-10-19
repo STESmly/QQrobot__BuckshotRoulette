@@ -1,4 +1,5 @@
-from nonebot import on_command, on_keyword, on_command
+import asyncio
+from nonebot import on_command, on_keyword
 from nonebot.adapters.qq import Message, MessageEvent, MessageSegment, Bot, GroupAddRobotEvent, GroupRobotEvent, GroupDelRobotEvent, MessageCreateEvent, GroupAtMessageCreateEvent, C2CMessageCreateEvent
 import json
 import random
@@ -296,9 +297,12 @@ def 进入游戏开局(user_1,user_2):
     
 def 获取昵称(用户):
     data = f"src/plugins/恶魔轮盘/个人信息/基础信息/{用户}.txt"
-    with open(data, "r", encoding="utf-8") as file:
-        昵称 = file.read()
-    return 昵称
+    try:
+        with open(data, "r", encoding="utf-8") as file:
+            昵称 = file.read()
+        return 昵称
+    except:
+        return "【未知】"
 
 def 道具使用(用户, 道具):
     data = 'src/plugins/恶魔轮盘/匹配/子弹状况.txt'
@@ -406,8 +410,10 @@ def 道具使用(用户, 道具):
                     对手查询[str(对手)]['type'] = '未开始'
                     with open(data, "w", encoding="utf-8") as file:
                         json.dump(data_d, file, indent=4)
+                        file.close()
                     with open(对局参数, "w", encoding="utf-8") as file:
                         json.dump(对手查询, file, indent=4)
+                        file.close()
                     赢 = 对局打分('赢', 回合, 对手血量)
                     输 = 对局打分('输', 回合, 血量)
                     个人信息录入(对手, 赢, 用户, 输)
@@ -426,7 +432,7 @@ def 道具使用(用户, 道具):
                 return '群发', '当前子弹逆转成功'
         elif 道具 == '放大镜':
             子弹 = data_d[str(用户)]['子弹安排'][0]
-            return '私聊', f"当前子弹是{子弹}"
+            return '群发', f"当前子弹是{子弹}"
         
 def 注册检测(用户):
     data = f"src/plugins/恶魔轮盘/个人信息/基础信息/{用户}.txt"
@@ -456,29 +462,45 @@ djlb = on_command('道具列表',priority=10,block=True)
 
 @注册游戏.handle()
 async def _(event: MessageEvent, args: Message = CommandArg()):
+    if len(args) == 0:
+        await  注册游戏.send("请勿输入空名称")
+    else:
     # 获取用户输入的游戏名称
-    data = f"src/plugins/恶魔轮盘/个人信息/基础信息/{event.get_user_id()}.txt"
-    try:
-        with open(data, "r", encoding="utf-8") as f:
-            out = f.read()
-        await 注册游戏.send("您已注册过游戏，请勿重复注册！")
-    except:
-        with open(data, "w", encoding="utf-8") as f:
-            f.write(str(args))
-        await 注册游戏.send("\n注册成功！\n欢迎"+args+"来到恶魔轮盘！\n发送【恶魔轮盘】\n即可查看完整的游戏菜单\n\n[还请使用不易混淆的昵称，发送【修改名称 昵称】修改]\n\n注：本游戏极易刷屏，而且由于官方接口的限制，对局提示做不到很明显，望见谅")
+        data = f"src/plugins/恶魔轮盘/个人信息/基础信息/{event.get_user_id()}.txt"
+        try:
+            with open(data, "r", encoding="utf-8") as f:
+                out = f.read()
+            await 注册游戏.send("您已注册过游戏，请勿重复注册！")
+        except:
+            with open(data, "w", encoding="utf-8") as f:
+                f.write(str(args))
+            await 注册游戏.send("\n注册成功！\n欢迎"+args+"来到恶魔轮盘！\n发送【/恶魔轮盘】\n即可查看完整的游戏菜单\n\n[还请使用不易混淆的昵称，发送【修改名称 昵称】修改]\n\n注：本游戏极易刷屏，而且由于官方接口的限制，对局提示做不到很明显，望见谅")
+            try:
+                匹配参数 = 'src/plugins/恶魔轮盘/匹配/匹配参数.txt'
+                with open(匹配参数, "r", encoding="utf-8") as file:
+                    data_d = json.load(file)
+                data_d[str(event.get_user_id())] = {'type':'未开始'}
+                with open(匹配参数, "w", encoding="utf-8") as file:
+                    json.dump(data_d, file, indent=4)
+            except:
+                chuangjian_1("匹配参数",{str(event.get_user_id()):{'type':'未开始'}})
+                
 
 @修改名称.handle()
 async def _(event: MessageEvent, args: Message = CommandArg()):
+    if len(args) == 0:
+        await  注册游戏.send("请勿输入空名称")
+    else:
     # 获取用户输入的游戏名称
-    data = f"src/plugins/恶魔轮盘/个人信息/基础信息/{event.get_user_id()}.txt"
-    try:
-        with open(data, "r", encoding="utf-8") as f:
-            out = f.read()
-        with open(data, "w", encoding="utf-8") as f:
-            f.write(str(args))
-        await 注册游戏.send(args+"昵称修改成功！")
-    except:
-        await 注册游戏.send("您还未注册游戏，请先发送【注册恶魔轮盘 昵称】注册！")
+        data = f"src/plugins/恶魔轮盘/个人信息/基础信息/{event.get_user_id()}.txt"
+        try:
+            with open(data, "r", encoding="utf-8") as f:
+                out = f.read()
+            with open(data, "w", encoding="utf-8") as f:
+                f.write(str(args))
+            await 注册游戏.send(args+"昵称修改成功！")
+        except:
+            await 注册游戏.send("您还未注册游戏，请先发送【注册恶魔轮盘 昵称】注册！")
 
 @djlb.handle()
 async def emlpdj(bot: Bot, event: MessageEvent):
@@ -487,8 +509,9 @@ async def emlpdj(bot: Bot, event: MessageEvent):
 
 @xx.handle()
 async def emlpdj(bot: Bot, event: MessageEvent):
-        子弹详情 = 'src/plugins/恶魔轮盘/匹配/子弹状况.txt'
-        对局参数 = 'src/plugins/恶魔轮盘/匹配/匹配参数.txt'
+    子弹详情 = 'src/plugins/恶魔轮盘/匹配/子弹状况.txt'
+    对局参数 = 'src/plugins/恶魔轮盘/匹配/匹配参数.txt'
+    try:
         with open(对局参数, "r", encoding="utf-8") as file_2:
             data_2 = json.load(file_2)
         with open(子弹详情, "r", encoding="utf-8") as file_1:
@@ -500,22 +523,21 @@ async def emlpdj(bot: Bot, event: MessageEvent):
             对手血量 = data_1[str(对手)]['血量']
             顺序1 = data_1[str(event.get_user_id())]['先手顺序']
             顺序2 = data_1[str(对手)]['先手顺序']
-            try:
-                if data_2[str(event.get_user_id())]['type'] == '未开始':
-                    await xx.send(Message('您暂未加入对局'))
-                else:
-                    await xx.send(Message('\n当前回合：' + str(回合) + '       基础伤害：' + str(伤害) + '\n' +获取昵称(event.get_user_id()) + '    ' + 获取昵称(对手) + '\n顺序：' + str(顺序1) + '         ' + '顺序：' + str(顺序2) + '\n血量：' + str(血量) + '              ' + '血量：' + str(对手血量)))
-            except FileNotFoundError:
-                await xx.send(Message('您暂未加入对局'))
-            except json.decoder.JSONDecodeError:
-                await xx.send(Message('您暂未加入对局'))
-            except KeyError:
-                await xx.send(Message('您暂未加入对局'))
+        if data_2[str(event.get_user_id())]['type'] == '未开始':
+            await xx.send(Message('您暂未加入对局'))
+        else:
+            await xx.send(Message('\n当前回合：' + str(回合) + '\n基础伤害：' + str(伤害) + '\n\n' +获取昵称(event.get_user_id()) + '\n顺序：' + str(顺序1) +'\n血量：' + str(血量) + '\n\n' + 获取昵称(对手) + '\n顺序：' + str(顺序2) + '\n血量：' + str(对手血量)))
+    except FileNotFoundError:
+        await xx.send(Message('您暂未加入对局'))
+    except json.decoder.JSONDecodeError:
+        await xx.send(Message('您暂未加入对局'))
+    except KeyError:
+        await xx.send(Message('您暂未加入对局'))
 
 @phb.handle()
 async def emlpdj(bot: Bot, event: MessageEvent):
         反馈 = 排行榜(5)
-        发送 = '\n以下是排名\n'
+        发送 = '\n以下是排名'
         序号 = 1
         if 反馈 == '无':
             await phb.send(Message('暂时没有排行榜的数据呢'))
@@ -524,7 +546,7 @@ async def emlpdj(bot: Bot, event: MessageEvent):
                 昵称 = 获取昵称(key)
                 胜场, 胜率, 败场, 分数 = 个人战绩(key)
                 value = round(value,2)
-                发送 += '\n' + f"第{序号}名：{昵称}\n分数：{value}\n胜场：{胜场}场 胜率：{胜率}%"
+                发送 += '\n\n' + f"第{序号}名：{昵称}\n分数：{value}\n胜场：{胜场}场 胜率：{胜率}%"
                 序号 = 序号 + 1
             await phb.send(Message(发送))
 
@@ -543,19 +565,20 @@ async def emlpdj(bot: Bot, event: MessageEvent):
 
 @dj.handle()
 async def emlpdj(bot: Bot, event: MessageEvent):
-        data = 'src/plugins/恶魔轮盘/匹配/道具状况.txt'
-        对局参数 = 'src/plugins/恶魔轮盘/匹配/匹配参数.txt'
-        道具 = ["小刀","华子","饮料","手机","骰子","手铐","偷偷","过期药","放大镜","逆转器"]
-        try:
-            with open(对局参数, "r", encoding="utf-8") as file_2:
-                data_2 = json.load(file_2)
-            with open(data, "r", encoding="utf-8") as file:
-                data_d = json.load(file)
-                对手 = data_2[str(event.get_user_id())]['对手']
-                道具数量 = len(道具)
-                用户道具 = data_d[str(event.get_user_id())]['道具安排']
-                对手道具 = data_d[str(对手)]['道具安排']
-                发送 = ''
+    data = 'src/plugins/恶魔轮盘/匹配/道具状况.txt'
+    对局参数 = 'src/plugins/恶魔轮盘/匹配/匹配参数.txt'
+    道具 = ["小刀","华子","饮料","手机","骰子","手铐","偷偷","过期药","放大镜","逆转器"]
+    try:
+        with open(对局参数, "r", encoding="utf-8") as file_2:
+            data_2 = json.load(file_2)
+        with open(data, "r", encoding="utf-8") as file:
+            data_d = json.load(file)
+            对手 = data_2[str(event.get_user_id())]['对手']
+            道具数量 = len(道具)
+            用户道具 = data_d[str(event.get_user_id())]['道具安排']
+            对手道具 = data_d[str(对手)]['道具安排']
+            发送 = ''
+            if data_2[str(event.get_user_id())]['type'] == '正在进行':
                 if len(用户道具) != 0:
                     发送 += '\n您的道具如下：\n'
                     for i in range(道具数量):
@@ -563,7 +586,7 @@ async def emlpdj(bot: Bot, event: MessageEvent):
                         if 当前道具 in 用户道具:
                             发送 += '\n' + 当前道具 + ' x ' + str(用户道具.count(当前道具))
                         else:
-                            print('无')
+                            pass
                     if len(对手道具) != 0:
                         发送 += '\n\n对手的道具如下：\n'
                         for i in range(道具数量):
@@ -571,27 +594,35 @@ async def emlpdj(bot: Bot, event: MessageEvent):
                             if 当前道具 in 对手道具:
                                 发送 += '\n' + 当前道具 + ' x ' + str(对手道具.count(当前道具))
                             else:
-                                print('无')
-                await dj.send(Message(发送))
-        except FileNotFoundError:
-            await dj.send(Message('您暂未加入对局'))
-        except json.decoder.JSONDecodeError:
-            await dj.send(Message('您暂未加入对局'))
-        except KeyError:
-            await dj.send(Message('您暂未加入对局'))
+                                pass
+                    await dj.send(Message(发送))
+                else:
+                    await dj.send("你的道具用完了")
+            else:
+                await dj.send(Message('您暂未加入对局'))
+    except FileNotFoundError:
+        await dj.send(Message('您暂未加入对局'))
+    except json.decoder.JSONDecodeError:
+        await dj.send(Message('您暂未加入对局'))
+    except KeyError:
+        await dj.send(Message('您暂未加入对局'))
 
 @sydj.handle()
 async def emlpdj(event: MessageEvent):
-        ans = str(event.get_message()).strip()
-        ans = ans.strip('/使用 ')
-        data = 'src/plugins/恶魔轮盘/匹配/道具状况.txt'
-        子弹详情 = 'src/plugins/恶魔轮盘/匹配/子弹状况.txt'
+    ans = str(event.get_message()).strip()
+    ans = ans.strip('/使用 ')
+    data = 'src/plugins/恶魔轮盘/匹配/道具状况.txt'
+    子弹详情 = 'src/plugins/恶魔轮盘/匹配/子弹状况.txt'
+    对局参数 = 'src/plugins/恶魔轮盘/匹配/匹配参数.txt'
+    try:
         with open(子弹详情, "r", encoding="utf-8") as file_1:
-            data_1 = json.load(file_1)
-        try:
-            with open(data, "r", encoding="utf-8") as file:
-                data_d = json.load(file)
-                用户道具 = data_d[str(event.get_user_id())]['道具安排']
+                data_1 = json.load(file_1)
+        with open(data, "r", encoding="utf-8") as file:
+            data_d = json.load(file)
+            用户道具 = data_d[str(event.get_user_id())]['道具安排']
+        with open(对局参数, "r", encoding="utf-8") as file_2:
+            data_2 = json.load(file_2)
+        if data_2[str(event.get_user_id())]['type'] == '正在进行':
             if data_1[str(event.get_user_id())]['先手顺序'] == '后手':
                 await kqdj.send(Message('还不是你的回合'))
             else:
@@ -610,9 +641,9 @@ async def emlpdj(event: MessageEvent):
                                 json.dump(data_d, file, indent=4)
                     elif 情况 == '刷回合':
                         resp = await dj.send(Message(反馈))
-                        time.sleep(5)
+                        await asyncio.sleep(10)
                         (bot,) = nonebot.get_bots().values()
-                        await bot.delete_group_message(group_openid=GroupAtMessageCreateEvent.group_openid, message_id=resp.id)
+                        await bot.delete_group_message(group_openid=event.get_session_id().split('_')[2], message_id=resp.id)
                     elif 情况 == '无法使用':
                         await dj.send(Message(反馈))
                     elif 情况 == '私聊':
@@ -622,35 +653,38 @@ async def emlpdj(event: MessageEvent):
                                 json.dump(data_d, file, indent=4)
                             await dj.send(Message(反馈))
                         else:
-                            await dj.send(Message('请在私聊使用该道具'))
+                            await dj.send(Message('请在私聊使用该道具\n格式为/使用 手机'))
                     elif 情况 == '游戏失败':
-                        await dj.send(Message('恭喜' + (反馈) + '获得胜利'))
+                        await dj.send(Message('恭喜' + 获取昵称(反馈) + '获得胜利'))
                 else:
                     await dj.send(Message('没有这个道具哦'))
-        except FileNotFoundError:
+        else:
             await dj.send(Message('您暂未加入对局'))
-        except json.decoder.JSONDecodeError:
-            await dj.send(Message('您暂未加入对局'))
-        except KeyError:
-            await dj.send(Message('您暂未加入对局'))
+    except FileNotFoundError:
+        await dj.send(Message('您暂未加入对局'))
+    except json.decoder.JSONDecodeError:
+        await dj.send(Message('您暂未加入对局'))
+    except KeyError:
+        await dj.send(Message('您暂未加入对局'))
 
 @sydjtt.handle()
 async def emlpdjtt(event: MessageEvent):
-        ans = str(event.get_message()).strip()
-        ans = ans.strip('/使用偷偷 ')
-        data = 'src/plugins/恶魔轮盘/匹配/道具状况.txt'
-        子弹详情 = 'src/plugins/恶魔轮盘/匹配/子弹状况.txt'
-        对局参数 = 'src/plugins/恶魔轮盘/匹配/匹配参数.txt'
+    ans = str(event.get_message()).strip()
+    ans = ans.strip('/使用偷偷 ')
+    data = 'src/plugins/恶魔轮盘/匹配/道具状况.txt'
+    子弹详情 = 'src/plugins/恶魔轮盘/匹配/子弹状况.txt'
+    对局参数 = 'src/plugins/恶魔轮盘/匹配/匹配参数.txt'
+    try:
         with open(对局参数, "r", encoding="utf-8") as file_2:
             data_2 = json.load(file_2)
         with open(子弹详情, "r", encoding="utf-8") as file_1:
             data_1 = json.load(file_1)
-        try:
-            with open(data, "r", encoding="utf-8") as file:
-                data_d = json.load(file)
-                对手 = data_2[str(event.get_user_id())]['对手']
-                用户道具 = data_d[str(event.get_user_id())]['道具安排']
-                对手道具 = data_d[str(对手)]['道具安排']
+        with open(data, "r", encoding="utf-8") as file:
+            data_d = json.load(file)
+            对手 = data_2[str(event.get_user_id())]['对手']
+            用户道具 = data_d[str(event.get_user_id())]['道具安排']
+            对手道具 = data_d[str(对手)]['道具安排']
+        if data_2[str(event.get_user_id())]['type'] == '正在进行':
             if data_1[str(event.get_user_id())]['先手顺序'] == '后手':
                 await kqdj.send(Message('还不是你的回合'))
             elif '偷偷' in 用户道具:
@@ -671,31 +705,33 @@ async def emlpdjtt(event: MessageEvent):
                                 json.dump(data_d, file, indent=4)
                     elif 情况 == '刷回合':
                         resp = await dj.send(Message(反馈))
-                        time.sleep(5)
+                        await asyncio.sleep(10)
                         (bot,) = nonebot.get_bots().values()
-                        await bot.delete_group_message(group_openid=GroupAtMessageCreateEvent.group_openid, message_id=resp.id)
+                        await bot.delete_group_message(group_openid=event.get_session_id().split('_')[2], message_id=resp.id)
                     elif 情况 == '无法使用':
                         await dj.send(Message(反馈))
                     elif 情况 == '私聊':
                         if "friend" in event.get_session_id():
-                            data_d[str(event.get_user_id())]['道具安排'].remove(ans)
+                            data_d[str(对手)]['道具安排'].remove(ans)
                             with open(data, "w", encoding="utf-8") as file:
                                 json.dump(data_d, file, indent=4)
                             await dj.send(Message(反馈))
                         else:
-                            await dj.send(Message('请在私聊使用该道具'))
+                            await dj.send(Message('请在私聊使用该道具\n格式为/使用偷偷 手机'))
                     elif 情况 == '游戏失败':
-                        await dj.send(Message('恭喜' + (反馈) + '获得胜利'))
+                        await dj.send(Message('恭喜' + 获取昵称(反馈) + '获得胜利'))
                 else:
                     await dj.send(Message('没有这个道具哦'))
             else:
-                await dj.send(Message('没有这个道具哦'))
-        except FileNotFoundError:
-            await dj.send(Message('您暂未加入对局'))
-        except json.decoder.JSONDecodeError:
-            await dj.send(Message('您暂未加入对局'))
-        except KeyError:
-            await dj.send(Message('您暂未加入对局'))
+                await dj.send(Message('没有偷偷哦'))
+        else:
+            await dj.send("您暂未加入对局")
+    except FileNotFoundError:
+        await dj.send(Message('您暂未加入对局'))
+    except json.decoder.JSONDecodeError:
+        await dj.send(Message('您暂未加入对局'))
+    except KeyError:
+        await dj.send(Message('您暂未加入对局'))
 
 
 @yxcd.handle()
@@ -707,19 +743,20 @@ async def emlpcd(event: MessageEvent):
 
 @kspp.handle()
 async def emlpkspp(event: GroupAtMessageCreateEvent):
+    群号 = event.group_openid
     if 注册检测(event.get_user_id()) == '未注册':
         await kspp.send(Message('请先注册游戏\n注册分发：【注册恶魔轮盘 昵称】'))
     else:
         try:
-            群号 = event.group_openid
             data = 'src/plugins/恶魔轮盘/匹配/匹配参数.txt'
             with open(data, "r", encoding="utf-8") as file:
                 data_d = json.load(file)
             a = len(data_d[str(群号)]['匹配人'])
-            if data_d[str(event.get_user_id())]['type'] == '正在进行':
+            状态 = data_d[str(event.get_user_id())]['type']
+            if 状态 == '正在进行':
                 await kspp.send(Message('您正在进行游戏中'))
-            elif data_d[str(event.get_user_id())]['type'] == '未开始':
-                if (event.get_user_id() not in data_d[str(群号)]['匹配人']):
+            elif 状态 == '未开始':
+                if event.get_user_id() not in data_d[str(群号)]['匹配人']:
                     data_d[str(群号)]['匹配人'].append(event.get_user_id())
                     data_d[str(event.get_user_id())]['type'] = '开始'
                     with open(data, "w", encoding="utf-8") as file:
@@ -732,22 +769,25 @@ async def emlpkspp(event: GroupAtMessageCreateEvent):
                                 data_d[str(b)]['type'] = '正在进行'
                                 data_d[str(event.get_user_id())]['对手'] = b
                                 data_d[str(b)]['对手'] = event.get_user_id()
-                                time.sleep(2)
+                                json.dump(data_d, file, indent=4)
+                                file.close()
+                                await asyncio.sleep(2)
                                 反馈, 用户, 道具 = 进入游戏开局(b,event.get_user_id())
                                 resp = await kspp.send(Message('\n子弹分配完毕\n' + '空弹:' + str(反馈.count('空弹')) + '颗\n' + '实弹:' + str(反馈.count('实弹')) + '颗\n'+ 获取昵称(用户) + "是先手"))
                                 if 道具 == '无':
                                     print('没到发道具的时候')
                                 else:
                                     await kspp.send(Message(道具))
-                                    time.sleep(5)
+                                    await asyncio.sleep(10)
                                     (bot,) = nonebot.get_bots().values()
                                     await bot.delete_group_message(group_openid=event.group_openid, message_id=resp.id)
                                 break
                             elif i + 1 < a:
-                                print('1')
+                                pass
                             else:    
                                 await kspp.send('没人匹配的喔，可以先终止匹配')
-                        json.dump(data_d, file, indent=4)
+                                json.dump(data_d, file, indent=4)
+                                file.close()
                 else:
                     data_d[str(event.get_user_id())]['type'] = '开始'
                     with open(data, "w", encoding="utf-8") as file:
@@ -760,71 +800,40 @@ async def emlpkspp(event: GroupAtMessageCreateEvent):
                                 data_d[str(b)]['type'] = '正在进行'
                                 data_d[str(event.get_user_id())]['对手'] = b
                                 data_d[str(b)]['对手'] = event.get_user_id()
-                                time.sleep(2)
+                                json.dump(data_d, file, indent=4)
+                                file.close()
+                                await asyncio.sleep(2)
                                 反馈, 用户, 道具 = 进入游戏开局(b,event.get_user_id())
                                 resp = await kspp.send(Message('\n子弹分配完毕\n' + '空弹:' + str(反馈.count('空弹')) + '颗\n' + '实弹:' + str(反馈.count('实弹')) + '颗\n'+ 获取昵称(用户) + "是先手"))
                                 if 道具 == '无':
                                     print('没到发道具的时候')
                                 else:
                                     await kspp.send(Message(道具))
-                                    time.sleep(5)
+                                    await asyncio.sleep(10)
                                     (bot,) = nonebot.get_bots().values()
                                     await bot.delete_group_message(group_openid=event.group_openid, message_id=resp.id)
                                 break
                             elif i + 1 < a:
-                                print('1')
+                                pass
                             else:    
                                 await kspp.send('没人匹配的喔，可以先终止匹配')
-                        json.dump(data_d, file, indent=4)
+                                json.dump(data_d, file, indent=4)
+                                file.close()
             elif data_d[str(event.get_user_id())]['type'] == '开始':
                 await kspp.send(Message('您已经在匹配中'))
-        except FileNotFoundError:
-            chuangjian_1("匹配参数",{str(群号):{'匹配人':[event.get_user_id()]},str(event.get_user_id()):{'type':'开始'}})
-            await kspp.send(Message('正在为您匹配中'))
-        except json.decoder.JSONDecodeError:
-            data_b = {str(群号):{'匹配人':[event.get_user_id()]},str(event.get_user_id()):{'type':'开始'}}
-            with open(data, "w", encoding="utf-8") as file:
-                json.dump(data_b, file, indent=4)
-                print('创建完成完成')
-                await kspp.send(Message('正在为您匹配中'))
         except KeyError:
             if str(群号) not in data_d:
                 data_d[str(群号)] = {'匹配人':[event.get_user_id()]}
+                data_d[str(event.get_user_id())]['type'] = '开始'
                 with open(data, "w", encoding="utf-8") as file:
-                    await kspp.send(Message('正在为您匹配中'))
-                    json.dump(data_d, file, indent=4)
-            else:
-                data_d[str(群号)]['匹配人'].append(event.get_user_id())
-                data_d[str(event.get_user_id())] = {'type':'开始'}
-                with open(data, "w", encoding="utf-8") as file:
-                    await kspp.send(Message('正在为您匹配中'))
-                    for i in range(a):
-                        b = data_d[str(群号)]['匹配人'][i]
-                        if data_d[str(b)]['type'] == '开始' and b != event.get_user_id():
-                            await kspp.send(Message('匹配成功，你的对手是' + 获取昵称(b)))
-                            data_d[str(event.get_user_id())]['type'] = '正在进行'
-                            data_d[str(b)]['type'] = '正在进行'
-                            data_d[str(event.get_user_id())]['对手'] = b
-                            data_d[str(b)]['对手'] = event.get_user_id()
-                            time.sleep(2)
-                            反馈, 用户, 道具 = 进入游戏开局(b,event.get_user_id())
-                            resp = await kspp.send(Message('\n子弹分配完毕\n' + '空弹:' + str(反馈.count('空弹')) + '颗\n' + '实弹:' + str(反馈.count('实弹')) + '颗\n' + 获取昵称(用户) + "是先手"))
-                            if 道具 == '无':
-                                print('没到发道具的时候')
-                            else:
-                                await kspp.send(Message(道具))
-                                time.sleep(5)
-                                (bot,) = nonebot.get_bots().values()
-                                await bot.delete_group_message(group_openid=event.group_openid, message_id=resp.id)
-                            break
-                        elif i + 1 < a:
-                            print('1')
-                        else:    
-                            await kspp.send('没人匹配的喔，可以先终止匹配')
+                    await kspp.send(Message('正在为您匹配中,该游戏为群友pvp游戏如果没有群友响应匹配的话，请耐心等待'))
                     json.dump(data_d, file, indent=4)
 
 @zzpp.handle()
 async def emlpzzpp(bot: Bot, event: GroupAtMessageCreateEvent):
+    if 注册检测(event.get_user_id()) == '未注册':
+        await kspp.send(Message('请先注册游戏\n注册分发：【注册恶魔轮盘 昵称】'))
+    else:
         try:
             群号 = event.group_openid
             data = 'src/plugins/恶魔轮盘/匹配/匹配参数.txt'
@@ -851,6 +860,9 @@ async def emlpzzpp(bot: Bot, event: GroupAtMessageCreateEvent):
                 print('创建完成完成')
                 await zzpp.send(Message('已经终止匹配'))
         except KeyError:
+                data = 'src/plugins/恶魔轮盘/匹配/匹配参数.txt'
+                with open(data, "r", encoding="utf-8") as file:
+                    data_d = json.load(file)
                 data_d[str(event.get_user_id())] = {'type':'未开始'}
                 with open(data, "w", encoding="utf-8") as file:
                     json.dump(data_d, file, indent=4)
@@ -860,19 +872,20 @@ async def emlpzzpp(bot: Bot, event: GroupAtMessageCreateEvent):
 async def emlpkqdd(event: GroupAtMessageCreateEvent):
     try:
 
-            子弹详情 = 'src/plugins/恶魔轮盘/匹配/子弹状况.txt'
-            对局参数 = 'src/plugins/恶魔轮盘/匹配/匹配参数.txt'
-            对局结束 = 2
-            with open(子弹详情, "r", encoding="utf-8") as file_1:
-                data_1 = json.load(file_1)
-            with open(对局参数, "r", encoding="utf-8") as file_2:
-                data_2 = json.load(file_2)
-                对手 = data_2[str(event.get_user_id())]['对手']
-                血量 = data_1[str(对手)]['血量']
-                己方血量 = data_1[str(event.get_user_id())]['血量']
-                伤害 = data_1[str(event.get_user_id())]['伤害']
-                回合 = data_1[str(event.get_user_id())]['回合数']
-                手铐 = data_1[str(event.get_user_id())]['手铐效果']
+        子弹详情 = 'src/plugins/恶魔轮盘/匹配/子弹状况.txt'
+        对局参数 = 'src/plugins/恶魔轮盘/匹配/匹配参数.txt'
+        对局结束 = 2
+        with open(子弹详情, "r", encoding="utf-8") as file_1:
+            data_1 = json.load(file_1)
+        with open(对局参数, "r", encoding="utf-8") as file_2:
+            data_2 = json.load(file_2)
+            对手 = data_2[str(event.get_user_id())]['对手']
+            血量 = data_1[str(对手)]['血量']
+            己方血量 = data_1[str(event.get_user_id())]['血量']
+            伤害 = data_1[str(event.get_user_id())]['伤害']
+            回合 = data_1[str(event.get_user_id())]['回合数']
+            手铐 = data_1[str(event.get_user_id())]['手铐效果']
+            if data_2[str(event.get_user_id())]['type'] == '正在进行':
                 if data_1[str(event.get_user_id())]['先手顺序'] == '后手':
                     await kqdd.send(Message('还不是你的回合'))
                 elif data_1[str(event.get_user_id())]['先手顺序'] == '先手':
@@ -888,8 +901,10 @@ async def emlpkqdd(event: GroupAtMessageCreateEvent):
                         data_2[str(对手)]['type'] = '未开始'
                         with open(子弹详情, "w", encoding="utf-8") as file:
                             json.dump(data_1, file, indent=4)
+                            file.close()
                         with open(对局参数, "w", encoding="utf-8") as file:
                             json.dump(data_2, file, indent=4)
+                            file.close()
                             await kqdd.send(Message('恭喜' +获取昵称(event.get_user_id())+ '获取胜利'))
                             赢 = 对局打分('赢', 回合, 己方血量)
                             输 = 对局打分('输', 回合, 血量)
@@ -924,7 +939,7 @@ async def emlpkqdd(event: GroupAtMessageCreateEvent):
                             data_1[str(对手)]['先手顺序'] = '后手'
                             data_1[str(event.get_user_id())]['手铐效果'] = 1
                             data_1[str(event.get_user_id())]['伤害'] = 1 + 回合//4
-                            await kqdd.send(Message('是空弹\n' + '是先手'))
+                            await kqdd.send(Message('是空弹\n' +获取昵称(event.get_user_id())+'是先手'))
                         else:
                             data_1[str(event.get_user_id())]['子弹安排'].pop(0)
                             data_1[str(对手)]['子弹安排'].pop(0)
@@ -935,46 +950,49 @@ async def emlpkqdd(event: GroupAtMessageCreateEvent):
                             await kqdd.send(Message('是空弹\n' + 获取昵称(对手) + '是先手'))
                         with open(子弹详情, "w", encoding="utf-8") as file:
                             json.dump(data_1, file, indent=4)
-                if 对局结束 == 1:
-                    print('对局结束')
-                else:
-                    time.sleep(1)
-                    血1, 血2 = 双方信息(event.get_user_id(),对手)
-                    子弹安排, 状态, 道具 = 子弹检查(对手,event.get_user_id())
-                    if 状态 == 0:
-                        await kqdd.send(Message('\n双方状态\n' +获取昵称(event.get_user_id())+ '血量：' + str(血1) + '\n' + 获取昵称(对手) + '血量：' + str(血2)))
-                    elif 状态 == 1:
-                        resp = await kqdd.send(Message('\n子弹分配完毕\n' + '空弹:' + str(子弹安排.count('空弹')) + '颗\n' + '实弹:' + str(子弹安排.count('实弹')) + '颗'))
-                        time.sleep(1)
-                        await kqdd.send(Message('\n双方状态\n' +获取昵称(event.get_user_id())+ '血量：' + str(血1) + '\n' + 获取昵称(对手) + '血量：' + str(血2)))
-                        await kqdd.send(Message(道具))
-                        time.sleep(4)
-                        (bot,) = nonebot.get_bots().values()
-                        await bot.delete_group_message(group_openid=event.group_openid, message_id=resp.id)
+                    if 对局结束 == 1:
+                        print('对局结束')
+                    else:
+                        await asyncio.sleep(1)
+                        血1, 血2 = 双方信息(event.get_user_id(),对手)
+                        子弹安排, 状态, 道具 = 子弹检查(对手,event.get_user_id())
+                        if 状态 == 0:
+                            await kqdd.send(Message('\n双方状态\n' +获取昵称(event.get_user_id())+ '血量：' + str(血1) + '\n' + 获取昵称(对手) + '血量：' + str(血2)))
+                        elif 状态 == 1:
+                            resp = await kqdd.send(Message('\n子弹分配完毕\n' + '空弹:' + str(子弹安排.count('空弹')) + '颗\n' + '实弹:' + str(子弹安排.count('实弹')) + '颗'))
+                            await asyncio.sleep(1)
+                            await kqdd.send(Message('\n双方状态\n' +获取昵称(event.get_user_id())+ '血量：' + str(血1) + '\n' + 获取昵称(对手) + '血量：' + str(血2)))
+                            await kqdd.send(Message(道具))
+                            await asyncio.sleep(9)
+                            (bot,) = nonebot.get_bots().values()
+                            await bot.delete_group_message(group_openid=event.group_openid, message_id=resp.id)
+            else:
+                await kqdd.send("您暂未加入对局")
     except FileNotFoundError:
-            print('对局未开始')
+            await kqdd.send("您暂未的对局暂未开始，该游戏为群友pvp游戏，可能是未匹配到群友")
     except json.decoder.JSONDecodeError:
-            print('对局未开始')
+            await kqdd.send("您暂未的对局暂未开始，该游戏为群友pvp游戏，可能是未匹配到群友")
     except KeyError:
-            print('对局未开始')
+            await kqdd.send("您暂未的对局暂未开始，该游戏为群友pvp游戏，可能是未匹配到群友")
 
 @kqdj.handle()
 async def emlpkqdj(event: GroupAtMessageCreateEvent):
     try:
 
-            子弹详情 = 'src/plugins/恶魔轮盘/匹配/子弹状况.txt'
-            对局参数 = 'src/plugins/恶魔轮盘/匹配/匹配参数.txt'
-            对局结束 = 2
-            with open(子弹详情, "r", encoding="utf-8") as file_1:
-                data_1 = json.load(file_1)
-            with open(对局参数, "r", encoding="utf-8") as file_2:
-                data_2 = json.load(file_2)
-                血量 = data_1[str(event.get_user_id())]['血量']
-                对手 = data_2[str(event.get_user_id())]['对手']
-                伤害 = data_1[str(event.get_user_id())]['伤害']
-                回合 = data_1[str(event.get_user_id())]['回合数']
-                手铐 = data_1[str(event.get_user_id())]['手铐效果']
-                对手血量 = data_1[str(对手)]['血量']
+        子弹详情 = 'src/plugins/恶魔轮盘/匹配/子弹状况.txt'
+        对局参数 = 'src/plugins/恶魔轮盘/匹配/匹配参数.txt'
+        对局结束 = 2
+        with open(子弹详情, "r", encoding="utf-8") as file_1:
+            data_1 = json.load(file_1)
+        with open(对局参数, "r", encoding="utf-8") as file_2:
+            data_2 = json.load(file_2)
+            血量 = data_1[str(event.get_user_id())]['血量']
+            对手 = data_2[str(event.get_user_id())]['对手']
+            伤害 = data_1[str(event.get_user_id())]['伤害']
+            回合 = data_1[str(event.get_user_id())]['回合数']
+            手铐 = data_1[str(event.get_user_id())]['手铐效果']
+            对手血量 = data_1[str(对手)]['血量']
+            if data_2[str(event.get_user_id())]['type'] == '正在进行':
                 if data_1[str(event.get_user_id())]['先手顺序'] == '后手':
                     await kqdj.send(Message('还不是你的回合'))
                 elif data_1[str(event.get_user_id())]['先手顺序'] == '先手':
@@ -989,8 +1007,10 @@ async def emlpkqdj(event: GroupAtMessageCreateEvent):
                         data_2[str(对手)]['type'] = '未开始'
                         with open(子弹详情, "w", encoding="utf-8") as file:
                             json.dump(data_1, file, indent=4)
+                            file.close()
                         with open(对局参数, "w", encoding="utf-8") as file:
                             json.dump(data_2, file, indent=4)
+                            file.close()
                             await kqdj.send(Message('恭喜' + 获取昵称(对手) + '获取胜利'))
                             赢 = 对局打分('赢', 回合, 对手血量)
                             输 = 对局打分('输', 回合, 血量)
@@ -1024,25 +1044,27 @@ async def emlpkqdj(event: GroupAtMessageCreateEvent):
                         with open(子弹详情, "w", encoding="utf-8") as file:
                             json.dump(data_1, file, indent=4)
                         await kqdj.send(Message('是空弹\n' +获取昵称(event.get_user_id())+ '是先手'))
-                if 对局结束 == 1:
-                    print('对局结束')
-                else:
-                    time.sleep(1)
-                    血1, 血2 = 双方信息(event.get_user_id(),对手)
-                    子弹安排, 状态, 道具 = 子弹检查(对手,event.get_user_id())
-                    if 状态 == 0:
-                        await kqdd.send(Message('\n双方状态\n' +获取昵称(event.get_user_id())+ '血量：' + str(血1) + '\n' + 获取昵称(对手) + '血量：' + str(血2)))
-                    elif 状态 == 1:
-                        resp = await kqdd.send(Message('\n子弹分配完毕\n' + '空弹:' + str(子弹安排.count('空弹')) + '颗\n' + '实弹:' + str(子弹安排.count('实弹')) + '颗'))
-                        time.sleep(1)
-                        await kqdd.send(Message('\n双方状态\n' +获取昵称(event.get_user_id())+ '血量：' + str(血1) + '\n' + 获取昵称(对手) + '血量：' + str(血2)))
-                        await kqdd.send(Message(道具))
-                        time.sleep(4)
-                        (bot,) = nonebot.get_bots().values()
-                        await bot.delete_group_message(group_openid=event.group_openid, message_id=resp.id)
+                    if 对局结束 == 1:
+                        print('对局结束')
+                    else:
+                        await asyncio.sleep(1)
+                        血1, 血2 = 双方信息(event.get_user_id(),对手)
+                        子弹安排, 状态, 道具 = 子弹检查(对手,event.get_user_id())
+                        if 状态 == 0:
+                            await kqdd.send(Message('\n双方状态\n' +获取昵称(event.get_user_id())+ '血量：' + str(血1) + '\n' + 获取昵称(对手) + '血量：' + str(血2)))
+                        elif 状态 == 1:
+                            resp = await kqdd.send(Message('\n子弹分配完毕\n' + '空弹:' + str(子弹安排.count('空弹')) + '颗\n' + '实弹:' + str(子弹安排.count('实弹')) + '颗'))
+                            await asyncio.sleep(1)
+                            await kqdd.send(Message('\n双方状态\n' +获取昵称(event.get_user_id())+ '血量：' + str(血1) + '\n' + 获取昵称(对手) + '血量：' + str(血2)))
+                            await kqdd.send(Message(道具))
+                            await asyncio.sleep(9)
+                            (bot,) = nonebot.get_bots().values()
+                            await bot.delete_group_message(group_openid=event.group_openid, message_id=resp.id)
+            else:
+                await kqdd.send("您暂未加入对局")
     except FileNotFoundError:
-            print('对局未开始')
+            await kqdd.send("您暂未的对局暂未开始，该游戏为群友pvp游戏，可能是未匹配到群友")
     except json.decoder.JSONDecodeError:
-            print('对局未开始')
+            await kqdd.send("您暂未的对局暂未开始，该游戏为群友pvp游戏，可能是未匹配到群友")
     except KeyError:
-            print('对局未开始')
+            await kqdd.send("您暂未的对局暂未开始，该游戏为群友pvp游戏，可能是未匹配到群友")
